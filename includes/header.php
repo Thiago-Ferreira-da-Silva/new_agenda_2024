@@ -1,5 +1,5 @@
 <?php
- // Inicia o buffer de saída
+// Inicia o buffer de saída
 ob_start();
 
 // Inicia a sessão apenas se ainda não tiver sido iniciada
@@ -16,6 +16,50 @@ if (!isset($_SESSION['loginUser'])) {
 
 // Inclui o script de saída
 include_once('sair.php');
+?>
+<?php
+include_once('../config/conexao.php');
+
+// Obtém o email do usuário logado a partir da sessão
+$usuarioLogado = $_SESSION['loginUser'];
+
+// Define a consulta SQL para selecionar todos os campos do usuário com base no email
+$selectUser = "SELECT * FROM tb_user WHERE email_user=:emailUserLogado";
+
+try {
+    // Prepara a consulta SQL
+    $resultadoUser = $conect->prepare($selectUser);
+    
+    // Vincula o parâmetro :emailUserLogado ao valor da variável $usuarioLogado
+    $resultadoUser->bindParam(':emailUserLogado', $usuarioLogado, PDO::PARAM_STR);
+    
+    // Executa a consulta preparada
+    $resultadoUser->execute();
+
+    // Conta o número de linhas retornadas pela consulta
+    $contar = $resultadoUser->rowCount();
+    
+    // Se houver uma ou mais linhas retornadas
+    if ($contar > 0) {
+        // Obtém a próxima linha do conjunto de resultados como um objeto
+        $show = $resultadoUser->fetch(PDO::FETCH_OBJ);
+        
+        // Atribui os valores dos campos do usuário às variáveis PHP
+        $id_user = $show->id_user;
+        $foto_user = $show->foto_user;
+        $nome_user = $show->nome_user;
+        $email_user = $show->email_user;
+    } else {
+        // Exibe uma mensagem de aviso se não houver dados de perfil
+        echo '<div class="alert alert-danger"><strong>Aviso!</strong> Não há dados de perfil :(</div>';
+    }
+} catch (PDOException $e) {
+    // Registra a mensagem de erro no log do servidor em vez de exibi-la ao usuário
+    error_log("ERRO DE LOGIN DO PDO: " . $e->getMessage());
+    
+    // Exibe uma mensagem de erro genérica para o usuário
+    echo '<div class="alert alert-danger"><strong>Aviso!</strong> Ocorreu um erro ao tentar acessar os dados do perfil.</div>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt_br">
@@ -51,40 +95,7 @@ include_once('sair.php');
   <link rel="stylesheet" href="../dist/css/estilo.css">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
-<?php
-include_once('../config/conexao.php');
-$usuarioLogado = $_SESSION['loginUser'];
-
-$selectUser = "SELECT * FROM tb_user WHERE email_user=:emailUserLogado";
-
-try {
-    $resultadoUser = $conect->prepare($selectUser);
-    $resultadoUser->bindParam(':emailUserLogado', $usuarioLogado, PDO::PARAM_STR);
-    $resultadoUser->execute();
-
-    $contar = $resultadoUser->rowCount();
-    if ($contar > 0) {
-        $show = $resultadoUser->fetch(PDO::FETCH_OBJ);
-        
-        // Variáveis do usuário logado
-        $id_user = $show->id_user;
-        $foto_user = $show->foto_user;
-        $nome_user = $show->nome_user;
-        $senha_user = $show->senha_user;
-        $email_user = $show->email_user;
-    } else {
-        echo '<div class="alert alert-danger"><strong>Aviso!</strong> Não há dados de perfil :(</div>';
-    }
-} catch (PDOException $e) {
-    // Log the error message instead of displaying it to the user
-    error_log("ERRO DE LOGIN DO PDO: " . $e->getMessage());
-    echo '<div class="alert alert-danger"><strong>Aviso!</strong> Ocorreu um erro ao tentar acessar os dados do perfil.</div>';
-}
-
-
-?>
-  <!-- Navbar -->
+<div class="wrapper">  <!-- Navbar -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <!-- Left navbar links -->
     <ul class="navbar-nav">
