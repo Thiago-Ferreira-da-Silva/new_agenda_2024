@@ -68,6 +68,96 @@
                   <button type="submit" name="botao" class="btn btn-primary">Cadastrar Contato</button>
                 </div>
               </form>
+              <?php
+              // Inclui o arquivo de conexão com o banco de dados
+include('../config/conexao.php');
+
+// Verifica se o formulário foi submetido
+if (isset($_POST['botao'])) {
+    // Recupera os valores do formulário
+    $nome = $_POST['nome'];
+    $telefone = $_POST['telefone'];
+    $email = $_POST['email'];
+    $id_usuario = $_POST['id_user'];
+
+    // Define os formatos de imagem permitidos
+    $formatP = array("png", "jpg", "jpeg", "JPG", "gif");
+
+    // Verifica se a imagem foi enviada e se é válida
+    if (isset($_FILES['foto'])) {
+        $extensao = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+
+        // Verifica se o formato da imagem é permitido
+        if (in_array($extensao, $formatP)) {
+            // Define o diretório para upload da imagem
+            $pasta = "../img/cont/";
+
+            // Move o arquivo temporário para o diretório de upload
+            $temporario = $_FILES['foto']['tmp_name'];
+            $novoNome = uniqid() . ".$extensao";
+
+            if (move_uploaded_file($temporario, $pasta . $novoNome)) {
+                // Se o upload for bem-sucedido, define o nome do arquivo como o nome da imagem
+                $foto = $novoNome;
+            } else {
+                // Se o upload falhar, exibe mensagem de erro e define o avatar padrão
+                echo "Erro, não foi possível fazer o upload do arquivo!";
+                $foto = 'avatar_padrao.png';
+            }
+        } else {
+            // Se o formato da imagem não for permitido, exibe mensagem de erro e define o avatar padrão
+            echo "Formato Inválido";
+            $foto = 'avatar-padrao.png';
+        }
+    } else {
+        // Se não houver imagem enviada, define o avatar padrão
+        $foto = 'avatar_padrao.png';
+    }
+
+    // Prepara a consulta SQL para inserir os dados no banco de dados
+    $cadastro = "INSERT INTO tb_contatos (nome_contatos, fone_contatos, email_contatos, foto_contatos, id_user) VALUES (:nome, :telefone, :email, :foto, :id_user)";
+
+    try {
+        // Prepara a consulta SQL com os parâmetros
+        $result = $conect->prepare($cadastro);
+        $result->bindParam(':nome', $nome, PDO::PARAM_STR);
+        $result->bindParam(':telefone', $telefone, PDO::PARAM_STR);
+        $result->bindParam(':email', $email, PDO::PARAM_STR);
+        $result->bindParam(':foto', $foto, PDO::PARAM_STR);
+        $result->bindParam(':id_user', $id_usuario, PDO::PARAM_INT); // Adicionando o id_usuario
+
+        // Executa a consulta SQL
+        $result->execute();
+
+        // Verifica se a inserção foi bem-sucedida
+        $contar = $result->rowCount();
+        if ($contar > 0) {
+            // Se a inserção for bem-sucedida, exibe mensagem de sucesso
+            echo '<div class="container">
+                    <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h5><i class="icon fas fa-check"></i> OK!</h5>
+                    Dados inseridos com sucesso !!!
+                  </div>
+                </div>';
+            header("Refresh: 5, home.php");
+        } else {
+            // Se a inserção falhar, exibe mensagem de erro
+            echo '<div class="container">
+                  <div class="alert alert-danger alert-dismissible">
+                  <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                  <h5><i class="icon fas fa-check"></i> Erro!</h5>
+                  Dados não inseridos !!!
+                </div>
+              </div>';
+            header("Refresh: 5, home.php");
+        }
+    } catch (PDOException $e) {
+        // Exibe mensagem de erro se ocorrer um erro de PDO
+        echo "<strong>ERRO DE PDO= </strong>" . $e->getMessage();
+    }
+  }
+    ?>
               
             </div>
 </div>
@@ -83,6 +173,7 @@
                   <thead>
                     <tr>
                       <th style="width: 10px">#</th>
+                      <th>Foto</th>
                       <th>Nome</th>
                       <th>Telefone</th>
                       <th>E-mail</th>
@@ -90,26 +181,50 @@
                     </tr>
                   </thead>
                   <tbody>
-                    
-                                      
-                    <tr>
-                      <td>1</td>
-                      <td>Leandro</td>
-                      <td>
-                      85991446498
-                      </td>
-                      <td>
-                      francisco.silva92@prof.ce.gov
-                      </td>
-                      <td>
-                      <div class="btn-group">
-                        <a href="home.php?acao=editar&id=" class="btn btn-success" title="Editar Contato"><i class="fas fa-user-edit"></i></button>
-                        <a href="conteudo/del-contato.php?idDel=" onclick="return confirm('Deseja remover o contato')" class="btn btn-danger" title="Remover Contato"><i class="fas fa-user-times"></i></a>
-                      </div>
-                      </td>
-                    </tr>
-                   
-                                       
+
+                    <?php
+                        $select = "SELECT * FROM tb_contatos ORDER BY id_contatos DESC LIMIT 6";
+                        try {
+                            $result = $conect->prepare($select);
+                            $cont = 1;
+                            $result->execute();
+                        
+                            $contar = $result->rowCount();
+                            if ($contar > 0) {
+                                while ($show = $result->FETCH(PDO::FETCH_OBJ)) {
+                        ?>
+                                <tr>
+                                    <td><?php echo $cont++;?></td>
+                                    <td>
+                                    <?php
+                                    // Verifica se a variável $foto_user é igual a 'avatar-padrao.png'
+                                    if ($show->foto_contatos == 'avatar-padrao.png') {
+                                        // Exibe a imagem do avatar padrão
+                                        echo '<img src="../img/avatar_p/' . $show->foto_contatos . '" alt="' . $show->foto_contatos . '" title="' . $show->foto_contatos . '" style="width: 50px; border-radius: 100%;">';
+                                    } else {
+                                        // Exibe a imagem do usuário
+                                        echo '<img src="../img/cont/' . $show->foto_contatos . '" alt="' . $show->foto_contatos . '" title="' . $show->foto_contatos . '" style="width: 50px; border-radius: 100%;">';
+                                    }
+                                    ?>  
+                                   </td>
+                                    <td><?php echo $show->nome_contatos;?></td>
+                                    <td><?php echo $show->fone_contatos;?></td>
+                                    <td><?php echo $show->email_contatos;?></td>
+                                    <td>
+                                    <div class="btn-group">
+                                        <a href="home.php?acao=editar&id=<?php echo $show->id_contatos;?>" class="btn btn-success" title="Editar Contato"><i class="fas fa-user-edit"></i></a>
+                                        <a href="conteudo/del-contato.php?idDel=<?php echo $show->id_contatos;?>" onclick="return confirm('Deseja remover o contato')" class="btn btn-danger" title="Remover Contato"><i class="fas fa-user-times"></i></a>
+                                    </div>
+                                    </td>
+                                </tr>
+                        <?php
+                                }
+                            }
+                        } catch (PDOException $e) {
+                            echo '<strong>ERRO DE PDO= </strong>' . $e->getMessage();
+                        }
+                        ?>
+            
                   </tbody>
                 </table>
               </div>
@@ -127,4 +242,3 @@
     <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
-  

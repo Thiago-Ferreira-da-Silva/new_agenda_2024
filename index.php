@@ -109,12 +109,12 @@
                           echo '<div class="alert alert-success"><button type="button" class="close" data-dismiss="alert">×</button>
                           <strong>Logado com sucesso!</strong> Você será redirecionado para a agenda :)</div>';
       
-                          header("Refresh: 5; url=paginas/home.php?acao=bemvindo");
+                          header("Refresh: 1; url=paginas/home.php?acao=bemvindo");
                       } else {
                           echo '<div class="alert alert-danger">
                           <button type="button" class="close" data-dismiss="alert">×</button>
                           <strong>Erro!</strong> Senha incorreta, tente novamente.</div>';
-                          header("Refresh: 3; url=index.php");
+                          header("Refresh: 1; url=index.php");
                       }
                   } else {
                       echo '<div class="alert alert-danger">
